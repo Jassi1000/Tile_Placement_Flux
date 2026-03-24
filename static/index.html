@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tile Placement Flux – AI Image Enhancer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      color: #1a1a2e;
+      margin-bottom: 0.4rem;
+    }
+
+    p.subtitle {
+      color: #666;
+      margin-bottom: 1.8rem;
+      font-size: 0.9rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    input[type="file"],
+    select {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: 1.5px solid #d0d5dd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #333;
+      background: #fafafa;
+      margin-bottom: 1.2rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="file"]:focus,
+    select:focus {
+      border-color: #4f46e5;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
+      background: #4338ca;
+    }
+
+    #status {
+      margin-top: 1.2rem;
+      font-size: 0.9rem;
+      color: #555;
+      min-height: 1.4rem;
+      text-align: center;
+    }
+
+    #status.error { color: #dc2626; }
+    #status.success { color: #16a34a; }
+
+    #result-section {
+      margin-top: 1.8rem;
+      display: none;
+    }
+
+    #result-section h2 {
+      font-size: 1rem;
+      color: #333;
+      margin-bottom: 0.8rem;
+    }
+
+    #result-img {
+      width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+
+    #result-link {
+      display: inline-block;
+      margin-top: 0.7rem;
+      font-size: 0.85rem;
+      color: #4f46e5;
+      word-break: break-all;
+    }
+
+    .progress-bar-wrap {
+      background: #e5e7eb;
+      border-radius: 6px;
+      height: 8px;
+      margin-top: 1rem;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #4f46e5;
+      transition: width 0.4s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🏠 Tile Placement Flux</h1>
+    <p class="subtitle">Upload a room image and let AI enhance its realism.</p>
+
+    <label for="imageFile">Select Image</label>
+    <input type="file" id="imageFile" accept="image/*" />
+
+    <label for="enhancementLevel">Enhancement Level</label>
+    <select id="enhancementLevel">
+      <option value="low">Low</option>
+      <option value="medium" selected>Medium</option>
+      <option value="high">High</option>
+    </select>
+
+    <button id="enhanceBtn" onclick="enhance()">✨ Enhance Image</button>
+
+    <div class="progress-bar-wrap" id="progressWrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="result-section">
+      <h2>Enhanced Result</h2>
+      <img id="result-img" src="" alt="Enhanced image" />
+      <a id="result-link" href="" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+  </div>
+
+  <script>
+    const statusEl   = document.getElementById('status');
+    const resultSec  = document.getElementById('result-section');
+    const resultImg  = document.getElementById('result-img');
+    const resultLink = document.getElementById('result-link');
+    const btn        = document.getElementById('enhanceBtn');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressBar  = document.getElementById('progressBar');
+
+    function setStatus(msg, type = '') {
+      statusEl.textContent = msg;
+      statusEl.className = type;
+    }
+
+    function setProgress(pct) {
+      progressWrap.style.display = 'block';
+      progressBar.style.width = pct + '%';
+    }
+
+    async function enhance() {
+      const fileInput = document.getElementById('imageFile');
+      const level     = document.getElementById('enhancementLevel').value;
+
+      if (!fileInput.files || fileInput.files.length === 0) {
+        setStatus('⚠️ Please select an image file first.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      resultSec.style.display = 'none';
+      setProgress(10);
+      setStatus('Uploading image…');
+
+      try {
+        // Step 1 – Upload
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        const uploadRes = await fetch('/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json().catch(() => ({ detail: uploadRes.statusText }));
+          throw new Error(`Upload failed: ${err.detail || uploadRes.statusText}`);
+        }
+
+        const uploadData = await uploadRes.json();
+        const imageUrl   = uploadData.image_url;
+        setProgress(40);
+        setStatus('Enhancing image with AI… this may take a moment.');
+
+        // Step 2 – Process
+        const processRes = await fetch('/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_url: imageUrl, enhancement_level: level }),
+        });
+
+        if (!processRes.ok) {
+          const err = await processRes.json().catch(() => ({ detail: processRes.statusText }));
+          throw new Error(`Processing failed: ${err.detail || processRes.statusText}`);
+        }
+
+        const processData = await processRes.json();
+        const resultUrl   = processData.result_url;
+        setProgress(100);
+        setStatus('✅ Enhancement complete!', 'success');
+
+        // Show result
+        resultImg.src        = resultUrl;
+        resultLink.href      = resultUrl;
+        resultLink.textContent = resultUrl;
+        resultSec.style.display = 'block';
+
+      } catch (err) {
+        setStatus('❌ ' + err.message, 'error');
+        setProgress(0);
+        progressWrap.style.display = 'none';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+opencv-python
+numpy
+python-dotenv
+requests
+cloudinary
+python-multipart
